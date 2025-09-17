@@ -11,6 +11,7 @@ SHIP_CELL = '■'
 HIT_CELL = 'X'
 MISS_CELL = 'T'
 HIGHLIGHT_CELL = '+'
+SUNK_CELL = '#'
 
 SHIPS_CONFIG_TEMPLATES = {
     # Для полей до 6x6 включительно

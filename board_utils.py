@@ -1,5 +1,5 @@
 import config
-
+import os
 
 def print_board(board, board_size, hide_ships=False):
     print("  " + " ".join([chr(ord('A') + i) for i in range(board_size)]))
@@ -16,17 +16,43 @@ def print_board_with_highlights(board, board_size, possible_starts):
 
 
 def display_boards(player_board, computer_board, board_size):
+    os.system('cls' if os.name == 'nt' else 'clear')
     print("\n" + "=" * 25)
     print("Ваше поле:".ljust(board_size * 2 + 3) + "Поле компьютера:")
     header = "  " + " ".join([chr(ord('A') + i) for i in range(board_size)])
     print(header + "   " + header)
-    for i in range(board_size):
-        player_row_str = f"{i + 1:2d} " + " ".join(player_board[i])
-        comp_row = [cell if cell != config.SHIP_CELL else config.EMPTY_CELL for cell in computer_board[i]]
-        comp_row_str = f"{i + 1:2d} " + " ".join(comp_row)
-        print(player_row_str + "   " + comp_row_str)
-    print("=" * 25 + "\n")
 
+    for i in range(board_size):
+        player_row_parts = []
+        for cell in player_board[i]:
+            if cell == config.SHIP_CELL:
+                player_row_parts.append((f"{config.COLOR_SHIP}{cell}{config.COLOR_RESET}"))
+            elif cell == config.HIT_CELL:
+                player_row_parts.append((f"{config.COLOR_HIT}{cell}{config.COLOR_RESET}"))
+            elif cell == config.SUNK_CELL:
+                player_row_parts.append((f"{config.COLOR_SUNK}{cell}{config.COLOR_RESET}"))
+            elif cell == config.MISS_CELL:
+                player_row_parts.append((f"{config.COLOR_MISS}{cell}{config.COLOR_RESET}"))
+            else:
+                player_row_parts.append(cell)
+        player_row_str = f"{i + 1:2d} " + " ".join(player_row_parts)
+
+        comp_row_parts = []
+        for cell in computer_board[i]:
+            if cell == config.HIT_CELL:
+                comp_row_parts.append(f"{config.COLOR_HIT}{cell}{config.COLOR_RESET}")
+            elif cell == config.SUNK_CELL:
+                comp_row_parts.append((f"{config.COLOR_SUNK}{cell}{config.COLOR_RESET}"))
+            elif cell == config.MISS_CELL:
+                comp_row_parts.append(f"{config.COLOR_MISS}{cell}{config.COLOR_RESET}")
+            elif cell == config.SHIP_CELL:
+                comp_row_parts.append(config.EMPTY_CELL)
+            else:
+                comp_row_parts.append(cell)
+
+        comp_row_str = f"{i+1:2d}" + " ".join(comp_row_parts)
+        print(player_row_str + "  " + comp_row_str)
+    print("="*25 + "\n")
 
 def is_valid_placement(board, size, row, col, orientation, board_size):
     if orientation == 'H':

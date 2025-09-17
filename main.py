@@ -1,5 +1,11 @@
+import os
 import random
 import time
+from random import choice
+
+from colorama import init
+
+init()
 
 # Импортируем наши модули
 import config
@@ -27,14 +33,19 @@ def is_ship_sunk(board, ship_coords):
 
 def surround_sunk_ship(board, shots, ship_coords, board_size):
     """Обводит потопленный корабль точками и добавляет эти клетки в 'shots'."""
+    ship_cells = set(ship_coords)
+    for r_ship, c_ship in ship_coords:
+        board[r_ship][c_ship] = config.SUNK_CELL
+
     for r_hit, c_hit in ship_coords:
         for r in range(r_hit - 1, r_hit + 2):
             for c in range(c_hit - 1, c_hit + 2):
                 if 0 <= r < board_size and 0 <= c < board_size:
-                    if board[r][c] == config.EMPTY_CELL:
-                        board[r][c] = config.MISS_CELL
-                    # Добавляем в shots, чтобы ИИ сюда больше не стрелял
-                    shots.add((r, c))
+                    current_coord = (r, c)
+                    if current_coord not in ship_cells:
+                        if board[r][c] == config.EMPTY_CELL:
+                            board[r][c] = config.MISS_CELL
+                    shots.add(current_coord)
 
 
 def parse_coordinate(coord_str, board_size):
@@ -164,7 +175,13 @@ def game_loop():
         place_ships_randomly(player_board, board_size, ships_config)
     place_ships_randomly(computer_board, board_size, ships_config)
 
+    player_ships_alive = []
+    for size, count in ships_config.items():
+        player_ships_alive.extend([size] * count)
     ai_state = initialize_ai_state(board_size)
+    ai_state['player_ships_alive'] = player_ships_alive
+
+    player_shots = set()
 
     while True:
         # Ход игрока
@@ -174,23 +191,38 @@ def game_loop():
         player_turn = True
         while player_turn:
             coord_str = input("Ваш выстрел (например, A1): ")
-            row, col = parse_coordinate(coord_str, board_size)
-            if row is None or computer_board[row][col] in [config.HIT_CELL, config.MISS_CELL]:
-                print("Неверный ход. Попробуйте еще раз.")
+
+            if not coord_str:  # Проверка на пустую строку
+                print("Ошибка! Вы ничего не ввели. Попробуйте еще раз.")
                 continue
 
+            row, col = parse_coordinate(coord_str, board_size)
+
+            # Проверка на корректность координат (возврат из parse_coordinate)
+            if row is None:
+                print("Ошибка! Неверный формат координат (например, A1).")
+                continue
+
+            # Проверка, что в клетку еще не стреляли
+            if (row, col) in player_shots:
+                print("Вы уже стреляли в эту клетку. Попробуйте еще раз.")
+                continue
+            # --- Конец блока проверок ---
+            player_shots.add((row, col))
+
+            # Если все проверки пройдены, обрабатываем выстрел
             if computer_board[row][col] == config.SHIP_CELL:
                 print("Попадание!")
-                computer_board[row][col] = config.HIT_CELL
+                computer_board[row][col] = config.HIT_CELL # замена пустого значения на попадание (Х)
 
                 ship_coords = find_ship_at(computer_board, row, col, board_size)
                 if is_ship_sunk(computer_board, ship_coords):
                     print("Корабль потоплен!")
-                    surround_sunk_ship(computer_board, set(), ship_coords, board_size)
+                    surround_sunk_ship(computer_board, player_shots, ship_coords, board_size)
 
                 if check_win(computer_board):
                     display_boards(player_board, computer_board, board_size)
-                    print("\n*** ВЫ ПОБЕДИЛИ! ***")
+                    print("\n*** K.O! ***")
                     return
 
                 # Игрок попал, он ходит еще раз
@@ -210,7 +242,7 @@ def game_loop():
         # --- Блок кода для повторного хода компьютера при попадании ---
         computer_turn = True
         while computer_turn:
-            row, col = computer_move_func(ai_state, board_size)
+            row, col = computer_move_func(player_board, ai_state, board_size)
 
             ai_state['shots'].add((row, col))
             print(f"Компьютер стреляет в {chr(ord('A') + col)}{row + 1}...")
@@ -229,7 +261,7 @@ def game_loop():
 
                 if check_win(player_board):
                     display_boards(player_board, computer_board, board_size)
-                    print("\n*** КОМПЬЮТЕР ПОБЕДИЛ! ***")
+                    print("\n*** Вы не победили! ***")
                     return
 
                 # Компьютер попал, он ходит еще раз
@@ -241,6 +273,23 @@ def game_loop():
                 # Компьютер промахнулся, ход переходит игроку
                 computer_turn = False
 
+def main():
+    while True:
+        os.system('cls' if os.name == 'nt' else 'clear') # Можно добавить для очистки меню
+        print("\n--- МОРСКОЙ БОЙ ---")
+        print("1. Начать новую игру")
+        print("2. Выйти")
+        choice = input("Ваш выбор: ")
+
+        if choice == '1':
+            game_loop()
+            input("\nНажмите Enter, чтобы вернуться в главное меню...")
+        elif choice == '2':
+            print("До свидания!")
+            break
+        else:
+            print("Неверный ввод, попробуйте еще раз.")
+            time.sleep(1)
 
 if __name__ == "__main__":
-    game_loop()
+    main()
