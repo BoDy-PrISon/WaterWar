@@ -5,6 +5,8 @@ from random import choice
 
 from colorama import init
 
+import stats_utils
+
 init()
 
 # Импортируем наши модули
@@ -21,7 +23,8 @@ from ai import (
     COMPUTER_MOVE_STRATEGIES
 )
 
-
+player_sunk_count = 0
+computer_sunk_count = 0
 
 def is_ship_sunk(board, ship_coords):
     """Проверяет, потоплен ли корабль по его координатам."""
@@ -33,6 +36,8 @@ def is_ship_sunk(board, ship_coords):
 
 def surround_sunk_ship(board, shots, ship_coords, board_size):
     """Обводит потопленный корабль точками и добавляет эти клетки в 'shots'."""
+    global player_sunk_count,computer_sunk_count
+
     ship_cells = set(ship_coords)
     for r_ship, c_ship in ship_coords:
         board[r_ship][c_ship] = config.SUNK_CELL
@@ -142,6 +147,10 @@ def check_win(board):
 # --- Основная логика игры ---
 
 def game_loop():
+    global player_sunk_count,computer_sunk_count
+    player_sunk_count = 0
+    computer_sunk_count = 0
+
     board_size = 0
     while not (5 <= board_size <= 26):
         try:
@@ -162,7 +171,7 @@ def game_loop():
     difficulty = ''
     while difficulty not in ['1', '2', '3']:
         difficulty = input(
-            "Выберите уровень сложности:\n1. Легкий (случайные выстрелы)\n2. Средний (умная охота)\n3. Сложный\nВаш выбор: ")
+            "Выберите уровень сложности:\n1. Легкий \n2. Средний \n3. Сложный\nВаш выбор: ")
     computer_move_func = COMPUTER_MOVE_STRATEGIES[difficulty]
 
     # Выбор расстановки
@@ -219,10 +228,17 @@ def game_loop():
                 if is_ship_sunk(computer_board, ship_coords):
                     print("Корабль потоплен!")
                     surround_sunk_ship(computer_board, player_shots, ship_coords, board_size)
+                    computer_sunk_count += 1
 
                 if check_win(computer_board):
                     display_boards(player_board, computer_board, board_size)
                     print("\n*** K.O! ***")
+                    stats = stats_utils.load_stats()
+                    stats['games_played'] += 1
+                    stats['player_wins'] += 1
+                    stats['total_ships_sunk_by_player'] += computer_sunk_count
+                    stats['total_ships_sunk_by_computer'] += player_sunk_count
+                    stats_utils.save_stats(stats)
                     return
 
                 # Игрок попал, он ходит еще раз
@@ -257,11 +273,18 @@ def game_loop():
                 if is_ship_sunk(player_board, ship_coords):
                     print("Компьютер потопил ваш корабль!")
                     surround_sunk_ship(player_board, ai_state['shots'], ship_coords, board_size)
+                    player_sunk_count += 1
                     ai_state['hits'].clear()
 
                 if check_win(player_board):
                     display_boards(player_board, computer_board, board_size)
                     print("\n*** Вы не победили! ***")
+                    stats = stats_utils.load_stats()
+                    stats['games_played'] += 1
+                    stats['computer_wins'] += 1
+                    stats['total_ships_sunk_by_player'] += computer_sunk_count
+                    stats['total_ships_sunk_by_computer'] += player_sunk_count
+                    stats_utils.save_stats(stats)
                     return
 
                 # Компьютер попал, он ходит еще раз
@@ -278,13 +301,16 @@ def main():
         os.system('cls' if os.name == 'nt' else 'clear') # Можно добавить для очистки меню
         print("\n--- МОРСКОЙ БОЙ ---")
         print("1. Начать новую игру")
-        print("2. Выйти")
+        print("2. Статистика")
+        print("3. Выйти")
         choice = input("Ваш выбор: ")
 
         if choice == '1':
             game_loop()
             input("\nНажмите Enter, чтобы вернуться в главное меню...")
         elif choice == '2':
+            stats_utils.display_stats()
+        elif choice == '3':
             print("До свидания!")
             break
         else:
