@@ -70,7 +70,6 @@ def medium_move(player_board, ai_state, board_size):
                 c = first_hit[1]
                 if r_up >= 0 and (r_up, c) not in shots: potential_targets.append((r_up, c))
                 if r_down < board_size and (r_down, c) not in shots: potential_targets.append((r_down, c))
-
         if potential_targets:
             return random.choice(potential_targets)
         else:
