@@ -1,3 +1,4 @@
+from pyclbr import Class
 import time
 import os
 
@@ -15,10 +16,15 @@ class Player:
         self.ships_config = ships_config
         self.board = [[config.EMPTY_CELL] * board_size for _ in range(board_size)]
         self.shots = set()
-        self.ships_alive = []
+        self.ships = []
         self.sunk_ships_count = 0
+        
+        ship_types = {5: "Сверхтяжелый линкор", 4: "Линкор", 3: "Крейсер", 2: "Эсминец", 1: "Катер"}
         for size, count in ships_config.items():
-            self.ships_alive.extend([size] * count)
+            for _ in range(count):
+                ship_type = ship_types.get(size, "Корабль")
+                self.ships.append(Ship(size, ship_type))
+            
 
     def place_ships(self):
         """
@@ -29,18 +35,15 @@ class Player:
             choice = ''
             while choice not in ['1', '2']:
                 os.system('cls' if os.name == 'nt' else 'clear')
-                #print("\n--- Расстановка ваших кораблей ---")
-                #board_utils.print_board(self.board, self.board_size)
                 choice = input("Как вы хотите расставить корабли?\n1. Вручную\n2. Автоматически\nВаш выбор: ")
-
             if choice == '1':
-                board_utils.place_ships_manually(self.board, self.board_size, self.ships_config)
+                board_utils.place_ships_manually(self.board, self.board_size, self.ships)
             else:
                 print("Расставляю корабли автоматически...")
-                board_utils.place_ships_randomly(self.board, self.board_size, self.ships_config)
+                board_utils.place_ships_randomly(self.board, self.board_size, self.ships)
                 time.sleep(1)
         else:
-            board_utils.place_ships_randomly(self.board, self.board_size, self.ships_config)
+            board_utils.place_ships_randomly(self.board, self.board_size, self.ships)
 
     def is_defeated(self):
         return not any(config.SHIP_CELL in row for row in self.board)
@@ -52,11 +55,7 @@ class HumanPlayer(Player):
     Наследует всё от Player
     """
     def __init__(self, board_size, ships_config):
-        # При инициализации просто говорим родительскому классу, что это человек.
-        super().__init__(board_size, ships_config, is_human=True)
-
-    # Метод place_ships здесь не нужен, он будет унаследован от Player.
-
+       super().__init__(board_size, ships_config, is_human=True)
     def take_turn(self, opponent):
         player_turn = True
         while player_turn:
@@ -71,10 +70,12 @@ class HumanPlayer(Player):
 
             if row is None:
                 print("Ошибка! Неверный формат координат (например, A1).")
+                time.sleep(2)
                 continue
 
             if (row, col) in self.shots:
                 print("Вы уже стреляли в эту клетку. Попробуйте еще раз.")
+                time.sleep(2)
                 continue
 
             self.shots.add((row, col))
@@ -102,12 +103,11 @@ class HumanPlayer(Player):
 class ComputerPlayer(Player):
     """Класс для игрока-компьютера."""
     def __init__(self, board_size, ships_config, difficulty):
-        # Говорим родительскому классу, что это не человек.
         super().__init__(board_size, ships_config, is_human=False)
         self.ai_state = ai.initialize_ai_state(board_size)
         self.ai_move_func = ai.COMPUTER_MOVE_STRATEGIES[difficulty]
 
-    # Метод place_ships здесь тоже не нужен, он унаследуется.
+    
 
     def take_turn(self, opponent):
         print("\nКомпьютер делает ход...")
@@ -144,7 +144,16 @@ class ComputerPlayer(Player):
                 opponent.board[row][col] = config.MISS_CELL
                 computer_turn = False
         return True
-
+class Ship:
+    """Абстрактный класс для кораблей"""
+    def __init__(self,size,ship_type):
+        self.size = size
+        self.type = ship_type
+        self.coords = [] #координаты
+        self.hits = 0
+    def is_sunk(self):
+        return self.hits >= self.size
+        
 
 class Game:
     """класс, управляющий всем игровым процессом."""

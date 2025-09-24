@@ -19,7 +19,9 @@ SHIPS_CONFIG_TEMPLATES = {
     # Для полей 7x7 и 8x8
     'medium': {4: 1, 3: 1, 2: 2, 1: 3},
     # Для полей 9x9 и больше
-    'large': {4: 1, 3: 2, 2: 3, 1: 4}
+    'large': {4: 1, 3: 2, 2: 3, 1: 4},
+    # Для очень больших карт
+    'Extra large':{5: 1, 4: 2, 3: 3, 2: 5, 1: 7}
 }
 
 def get_ship_config(board_size):
@@ -28,8 +30,9 @@ def get_ship_config(board_size):
         return SHIPS_CONFIG_TEMPLATES['small'].copy()
     elif board_size <= 8:
         return SHIPS_CONFIG_TEMPLATES['medium'].copy()
-    else:
+    elif board_size<=14:
         return SHIPS_CONFIG_TEMPLATES['large'].copy()
-
+    else:
+        return SHIPS_CONFIG_TEMPLATES['Extra large'].copy()
 
 

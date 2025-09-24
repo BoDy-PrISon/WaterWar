@@ -106,76 +106,78 @@ def parse_coordinate(coord_str, board_size):
         return None, None
     return row, col
 
-def place_ships_manually(board, board_size, ships_config):
+def place_ships_manually(board, board_size, ships_list):
     """Позволяет игроку расставить корабли вручную."""
-    for ship_size, count in ships_config.items():
-        for i in range(count):
-            placed = False
-            while not placed:
-                possible_starts = set()
-                for r in range(board_size):
-                    for c in range(board_size):
-                        if is_valid_placement(board, ship_size, r, c, 'H', board_size) or \
-                                is_valid_placement(board, ship_size, r, c, 'V', board_size):
-                            possible_starts.add((r, c))
+    for ship in ships_list: 
+        placed = False
+        while not placed:
+            possible_starts = set()
+            for r in range(board_size):
+                for c in range(board_size):
+                    if is_valid_placement(board, ship.size, r, c, 'H', board_size) or \
+                            is_valid_placement(board, ship.size, r, c, 'V', board_size):
+                        possible_starts.add((r, c))
 
-                print(f"\nВаше поле (знаком '{config.HIGHLIGHT_CELL}' отмечены возможные стартовые клетки):")
-                print_board_with_highlights(board, board_size, possible_starts)
+            print(f"\nВаше поле (знаком '{config.HIGHLIGHT_CELL}' отмечены возможные стартовые клетки):")
+            print_board_with_highlights(board, board_size, possible_starts)
+            
+            print(f"Размещаем корабль: {ship.type} ({ship.size} палубы).")
+            coord_str = input(f"Введите начальную координату (например, A1): ")
+            row, col = parse_coordinate(coord_str, board_size)
+            if row is None or (row, col) not in possible_starts:
+                print("Ошибка! Неверная или недоступная координата.")
+                continue
 
-                print(f"Размещаем {i + 1}-й корабль размером {ship_size} палубы.")
-                coord_str = input(f"Введите начальную координату (например, A1): ")
-                row, col = parse_coordinate(coord_str, board_size)
-                if row is None or (row, col) not in possible_starts:
-                    print("Ошибка! Неверная или недоступная координата.")
-                    continue
+            can_h = is_valid_placement(board, ship.size, row, col, 'H', board_size)
+            can_v = is_valid_placement(board, ship.size, row, col, 'V', board_size)
+            orientation = ''
+            if can_h and can_v:
+                orientation = input("Введите ориентацию (H/V): ").upper()
+            elif can_h:
+                orientation = 'H'
+                print("Автоматически выбрана горизонтальная ориентация.")
+            else:
+                orientation = 'V'
+                print("Автоматически выбрана вертикальная ориентация.")
 
-                can_h = is_valid_placement(board, ship_size, row, col, 'H', board_size)
-                can_v = is_valid_placement(board, ship_size, row, col, 'V', board_size)
-                orientation = ''
-                if can_h and can_v:
-                    orientation = input("Введите ориентацию (H/V): ").upper()
-                elif can_h:
-                    orientation = 'H'
-                    print("Автоматически выбрана горизонтальная ориентация.")
+            if orientation in ['H', 'V'] and is_valid_placement(board, ship.size, row, col, orientation,
+                                                                board_size):
+                ship_coords = []
+                if orientation == 'H':
+                    for j in range(ship.size):
+                        board[row][col + j] = config.SHIP_CELL
+                        ship_coords.append((row, col + j))
                 else:
-                    orientation = 'V'
-                    print("Автоматически выбрана вертикальная ориентация.")
+                    for j in range(ship.size):
+                        board[row + j][col] = config.SHIP_CELL
+                        ship_coords.append((row + j, col))
 
-                if orientation in ['H', 'V'] and is_valid_placement(board, ship_size, row, col, orientation,
-                                                                    board_size):
-                    if orientation == 'H':
-                        for j in range(ship_size): board[row][col + j] = config.SHIP_CELL
-                    else:
-                        for j in range(ship_size): board[row + j][col] = config.SHIP_CELL
-                    placed = True
-                else:
-                    print("Ошибка! Неверный ввод или невозможно разместить корабль.")
+                ship.coords = ship_coords
+                placed = True
+            else:
+                print("Ошибка! Неверный ввод или невозможно разместить корабль.")
     return board
 
-def place_ships_randomly(board, board_size, ships_config):
-    """Расставляет корабли случайным образом."""
-    for ship_size, count in ships_config.items():
-        for _ in range(count):
-            placed = False
-            # Добавим счетчик, чтобы избежать вечного цикла на всякий случай
-            attempts = 0
-            while not placed and attempts < 1000:
-                orientation = random.choice(['H', 'V'])
-                row = random.randint(0, board_size - 1)
-                col = random.randint(0, board_size - 1)
-                if is_valid_placement(board, ship_size, row, col, orientation, board_size):
-                    if orientation == 'H':
-                        for i in range(ship_size): board[row][col + i] = config.SHIP_CELL
-                    else:
-                        for i in range(ship_size): board[row + i][col] = config.SHIP_CELL
-                    placed = True
-                attempts += 1
-            if not placed:
-                # Если за 1000 попыток не удалось разместить корабль, что-то не так
-                # Можно будет в будущем обработать эту ошибку
-                print(f"Не удалось разместить корабль размером {ship_size}!")
-
+def place_ships_randomly(board, board_size, ships_list):
+    """Расставляет корабли из списка объектов Ship случайным образом."""
+    for ship in ships_list:
+        placed = False
+        attempts = 0
+        while not placed and attempts < 1000:
+            orientation = random.choice(['H', 'V'])
+            row = random.randint(0, board_size - 1)
+            col = random.randint(0, board_size - 1)
+            if is_valid_placement(board, ship.size, row, col, orientation, board_size):
+                if orientation == 'H':
+                    for i in range(ship.size): board[row][col + i] = config.SHIP_CELL
+                else:
+                    for i in range(ship.size): board[row + i][col] = config.SHIP_CELL
+                placed = True
+            attempts += 1
+        if not placed:
+            print(f"Не удалось разместить корабль размером {ship.size}!")
     return board
+
 def is_ship_sunk(board, ship_coords):
     """Проверяет, потоплен ли корабль по его координатам."""
     for r, c in ship_coords:
