@@ -18,7 +18,7 @@ def print_board_with_highlights(board, board_size, possible_starts):
         print(f"{r + 1:2d} " + " ".join(display_row))
 
 
-def display_boards(player_board, computer_board, board_size):
+def display_boards(player_board, computer_board, board_size,reveal_computer_ships=False):
     os.system('cls' if os.name == 'nt' else 'clear')
     print("\n" + "=" * 25)
     print("Ваше поле:".ljust(board_size * 2 + 3) + "Поле компьютера:")
@@ -49,7 +49,10 @@ def display_boards(player_board, computer_board, board_size):
             elif cell == config.MISS_CELL:
                 comp_row_parts.append(f"{config.COLOR_MISS}{cell}{config.COLOR_RESET}")
             elif cell == config.SHIP_CELL:
-                comp_row_parts.append(config.EMPTY_CELL)
+                if reveal_computer_ships:
+                    comp_row_parts.append((f"{config.COLOR_SHIP}{cell}{config.COLOR_RESET}"))
+                else:
+                    comp_row_parts.append(config.EMPTY_CELL)
             else:
                 comp_row_parts.append(cell)
 

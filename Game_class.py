@@ -1,6 +1,7 @@
 from pyclbr import Class
 import time
 import os
+from unittest import result
 
 import config
 import board_utils
@@ -19,11 +20,17 @@ class Player:
         self.ships = []
         self.sunk_ships_count = 0
         
-        ship_types = {5: "Сверхтяжелый линкор", 4: "Линкор", 3: "Крейсер", 2: "Эсминец", 1: "Катер"}
+        ship_class_map = {
+            5: Heavy_Lincor, 
+            4: Lincor,
+            3: Kreyser,
+            2: Esminec,
+            1: Kater,
+        }
         for size, count in ships_config.items():
             for _ in range(count):
-                ship_type = ship_types.get(size, "Корабль")
-                self.ships.append(Ship(size, ship_type))
+                ship_class = ship_class_map.get(size, Ship)
+                self.ships.append(ship_class())
             
 
     def place_ships(self):
@@ -115,6 +122,9 @@ class ComputerPlayer(Player):
 
         computer_turn = True
         while computer_turn:
+            opponent_ships_alive = [ship.size for ship in opponent.ships if not ship.is_sunk()]
+            self.ai_state['player_ships_alive'] = opponent_ships_alive
+            
             row, col = self.ai_move_func(opponent.board, self.ai_state, self.board_size)
             self.shots.add((row, col))
             self.ai_state['shots'].add((row, col))
@@ -151,9 +161,82 @@ class Ship:
         self.type = ship_type
         self.coords = [] #координаты
         self.hits = 0
+        self.ability_name = "Нет"
+        self.ability_cooldown = 0
+        self.current_cooldown = 0
     def is_sunk(self):
         return self.hits >= self.size
-        
+    def is_ability_ready(self):
+        """готова ли способность к использованию."""
+        return self.current_cooldown == 0
+    def use_ability(self, oppnent_board, target_coords):
+        """Метод для использования способности. Будет переопределен в дочерних классах."""
+        print("У этого корабля нет активной способности.")
+        return None
+    def tick_cooldown(self):
+        """Уменьшает кулдаун в конце хода"""
+        if self.current_cooldown >0:
+            self.current_cooldown -= 1
+
+class Heavy_Lincor(Ship):
+    def __init__(self):
+        super().__init__(size=5, ship_type ="Сверхтяжелый Линкор")
+        self.ability_name = "Массированный удар"
+        self.ability_cooldown = 5
+
+    def use_ability(self, opponent_board, target_row, target_col, board_size):
+        """Атака по площади 5x5."""
+        #print(f"{self.type} использует '{self.ability_name}'!")
+        #self.current_cooldown = self.ability_cooldown + 1
+        #result = []
+        #for r in range(target_row - 1, target_row + 2):
+        #    for c in range(target_col - 1, target_col+2):
+        #        if 0 <= r < board_size and 0 <= c < board_size:
+        #            pass
+        #return result
+        pass
+class Lincor(Ship):
+    def __init__(self):
+        super().__init__(size=4, ship_type ="Линкор")
+        self.ability_name = "Артиллерийский удар"
+        self.ability_cooldown = 3
+    def use_ability(self, opponent_board, target_row, target_col, board_size):
+        """Атака по площади 3x3."""
+        #print(f"{self.type} использует '{self.ability_name}'!")
+        #self.current_cooldown = self.ability_cooldown + 1
+        #result = []
+        #for r in range(target_row - 1, target_row + 2):
+        #    for c in range(target_col - 1, target_col+2):
+        #        if 0 <= r < board_size and 0 <= c < board_size:
+        #            pass
+        #return result
+        pass
+class Kreyser(Ship):
+    def __init__(self):
+        super().__init__(size=3, ship_type ="Крейсер")
+        self.ability_name = "Разведка боем"
+        self.ability_cooldown = 2
+    def use_ability(self, opponent_board, target_row, target_col, board_size):
+        pass
+        #return result
+
+class Esminec(Ship):
+    def __init__(self):
+        super().__init__(size=2, ship_type ="Эсминец")
+        self.ability_name = "Двойной выстрел"
+        self.ability_cooldown = 2
+    def use_ability(self, opponent_board, target_row, target_col, board_size):
+        #return result
+        pass
+class Kater(Ship):
+    def __init__(self):
+        super().__init__(size=1, ship_type ="Эсминец")
+        self.ability_name = "Маневр"
+        self.ability_cooldown = 2
+    def use_ability(self, opponent_board, target_row, target_col, board_size):
+        #return result
+        pass
+
 
 class Game:
     """класс, управляющий всем игровым процессом."""
@@ -185,7 +268,6 @@ class Game:
         self.player = HumanPlayer(self.board_size, ships_config)
         self.computer = ComputerPlayer(self.board_size, ships_config, difficulty)
         
-        # Теперь вызов place_ships одинаковый, но каждый объект выполнит его по-своему
         self.player.place_ships()
         print("\nКомпьютер расставляет свои корабли...")
         self.computer.place_ships()
@@ -194,16 +276,15 @@ class Game:
 
     def run(self):
         while True:
-            # Ход игрока
+            
             if not self.player.take_turn(self.computer):
-                board_utils.display_boards(self.player.board, self.computer.board, self.board_size)
                 print("\n*** K.O! Вы победили! ***")
                 self.update_stats(winner='player')
+                board_utils.display_boards(self.player.board, self.computer.board, self.board_size,reveal_computer_ships=True)
                 break
 
-            # Ход компьютера
             if not self.computer.take_turn(self.player):
-                board_utils.display_boards(self.player.board, self.computer.board, self.board_size)
+                board_utils.display_boards(self.player.board, self.computer.board, self.board_size,reveal_computer_ships=True)
                 print("\n*** Вы не победили! ***")
                 self.update_stats(winner='computer')
                 break

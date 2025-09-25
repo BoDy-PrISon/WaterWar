@@ -1,7 +1,7 @@
 {
-    "games_played": 6,
-    "player_wins": 5,
+    "games_played": 8,
+    "player_wins": 7,
     "computer_wins": 1,
-    "total_ships_sunk_by_player": 20,
-    "total_ships_sunk_by_computer": 7
+    "total_ships_sunk_by_player": 28,
+    "total_ships_sunk_by_computer": 9
 }
